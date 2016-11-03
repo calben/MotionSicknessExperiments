@@ -16,21 +16,24 @@ public:
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
+
 	// Called every frame
-	virtual void Tick( float DeltaSeconds ) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UStaticMeshComponent* Mesh;
-	
+		UStaticMeshComponent* Mesh;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UCameraComponent* Camera;
+		UCameraComponent* Camera;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		UStaticMeshComponent* Window;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		class UWidgetComponent* TrialResponseWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bIsSickening;
@@ -57,16 +60,31 @@ public:
 		float SickeningTimer = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool bTrialMode;
+		bool bIsInTrial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float TrialTimer = 5.f;
+		float TrialTime = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<int32> SpeedMultiplierTestPool = { 1 / 8, 1 / 4, 1 / 2, 1, 2, 4, 8, 16, 32 };
+		float TrialTimer = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<int32> DirectionChangeFrequency = { 1 / 32, 1 / 16, 1 / 8, 1 / 4, 1, 2, 4, 8, 16, 32 };
+		TArray<float> SpeedMultiplierTestPool = { 1 / 8.f, 1 / 4.f, 1 / 2.f, 1, 2, 4, 8, 16, 32 };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<float> DirectionChangeFrequency = { 1 / 32.f, 1 / 16.f, 1 / 8.f, 1 / 4.f, 1, 2, 4, 8, 16, 32 };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool bTestingOnlySpeedMultiplier = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool bTestingOnlyDirectionChangeRate = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool bShowTrialResponseWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		bool bNeedsToUpdateUI;
 
 	void ToggleSickening();
 
@@ -90,7 +108,10 @@ public:
 
 	void DecreaseFOV();
 
-	void SetupTrial();
-
 	void ResetCamera();
+
+	void OnPreTrial();
+
+	void OnPostTrial();
+
 };

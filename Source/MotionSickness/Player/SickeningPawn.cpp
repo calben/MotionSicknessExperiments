@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MotionSickness.h"
+#include "Components/WidgetComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "SickeningPawn.h"
-
 
 // Sets default values
 ASickeningPawn::ASickeningPawn()
@@ -20,14 +20,10 @@ ASickeningPawn::ASickeningPawn()
 	Camera->bLockToHmd = false;
 
 	Window = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WINDOW"));
-	const ConstructorHelpers::FObjectFinder<UStaticMesh> WindowObj(TEXT("/Game/StarterContent/Architecture/Wall_Window_400x300"));
-	if (WindowObj.Object)
-		Window->SetStaticMesh(WindowObj.Object);
-
-	Window->SetRelativeLocation(FVector(90.f, 200.f, -55.f));
-	Window->SetRelativeRotation(FRotator(0.f, 270.f, 0.f));
-	Window->SetRelativeScale3D(FVector(1.f, 1.f, 0.4f));
 	Window->SetupAttachment(Camera);
+
+	TrialResponseWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("RESPONSEWIDGET"));
+	TrialResponseWidget->SetupAttachment(Camera);
 
 	SickeningSpeed = 5.f;
 }
@@ -70,7 +66,12 @@ void ASickeningPawn::Tick( float DeltaTime )
 		AddControllerYawInput(CurrentSickeningDirection.Y * SickeningSpeed * DeltaTime);
 		AddControllerRollInput(CurrentSickeningDirection.Z * SickeningSpeed * DeltaTime);
 		SetActorRotation(this->GetControlRotation());
+		if (bIsInTrial && TrialTimer >= TrialTime)
+		{
+			OnPostTrial();
+		}
 	}
+	TrialTimer += DeltaTime;
 	SickeningTimer += DeltaTime;
 }
 
@@ -85,7 +86,7 @@ void ASickeningPawn::SetupPlayerInputComponent(class UInputComponent* InputCompo
 	InputComponent->BindAction("DecreaseSickenSpeed", IE_Pressed, this, &ASickeningPawn::DecreaseSickenSpeed);
 	InputComponent->BindAction("IncreaseTimerSpeed", IE_Pressed, this, &ASickeningPawn::IncreaseTimerSpeed);
 	InputComponent->BindAction("DecreaseTimerSpeed", IE_Pressed, this, &ASickeningPawn::DecreaseTimerSpeed);
-	InputComponent->BindAction("SetupTrial", IE_Pressed, this, &ASickeningPawn::SetupTrial);
+	InputComponent->BindAction("SetupTrial", IE_Pressed, this, &ASickeningPawn::OnPreTrial);
 	InputComponent->BindAction("EnableX", IE_Pressed, this, &ASickeningPawn::EnableX);
 	InputComponent->BindAction("EnableY", IE_Pressed, this, &ASickeningPawn::EnableY);
 	InputComponent->BindAction("EnableZ", IE_Pressed, this, &ASickeningPawn::EnableZ);
@@ -157,10 +158,28 @@ void ASickeningPawn::DecreaseFOV()
 	Camera->SetFieldOfView(Camera->FieldOfView - 5.0f);
 }
 
-void ASickeningPawn::SetupTrial()
+void ASickeningPawn::OnPreTrial()
 {
-	SickeningSpeed = SpeedMultiplierTestPool[(int32) FMath::RandRange(0, SpeedMultiplierTestPool.Num())];
-	SickeningRotatorChangeSeconds = DirectionChangeFrequency[(int32) FMath::RandRange(0, DirectionChangeFrequency.Num())];
+	int32 index_a = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
+	int32 index_b = (int32)FMath::RandRange(0, DirectionChangeFrequency.Num() - 1);
+	SickeningSpeed = SpeedMultiplierTestPool[index_a];
+	SickeningRotatorChangeSeconds = DirectionChangeFrequency[index_b];
+	ResetCamera();
+	SickeningTimer = 0.f;
+	TrialTimer = 0.f;
+	bIsInTrial = true;
+	bIsSickening = true;
+	TrialResponseWidget->SetVisibility(false);
+	bNeedsToUpdateUI = true;
+}
+
+void ASickeningPawn::OnPostTrial()
+{
+	bIsSickening = false;
+	SickeningTimer = 0.f;
+	TrialTimer = 0.f;
+	TrialResponseWidget->SetVisibility(true);
+	bNeedsToUpdateUI = true;
 }
 
 void ASickeningPawn::ResetCamera()
