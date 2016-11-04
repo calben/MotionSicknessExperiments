@@ -30,6 +30,12 @@ ASickeningPawn::ASickeningPawn()
 	TrialResponseWidgetComponent->bAbsoluteRotation = false;
 	TrialResponseWidgetComponent->bAbsoluteScale = false;
 
+	SessionFinishedWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("RESPONSEWIDGET"));
+	SessionFinishedWidgetComponent->SetupAttachment(Camera);
+	SessionFinishedWidgetComponent->bAbsoluteLocation = false;
+	SessionFinishedWidgetComponent->bAbsoluteRotation = false;
+	SessionFinishedWidgetComponent->bAbsoluteScale = false;
+
 	SickeningSpeed = 5.f;
 }
 
@@ -44,7 +50,23 @@ void ASickeningPawn::BeginPlay()
 		TrialResponseWidgetComponent->SetWidget(TrialResponseWidget);
 	}
 	TrialResponseWidgetComponent->SetVisibility(false);
+
+	if (SessionFinishedWidgetClass)
+	{
+		SessionFinishedWidget = CreateWidget<UUserWidget>(GetWorld()->GetFirstPlayerController(), SessionFinishedWidgetClass);
+		SessionFinishedWidgetComponent->SetWidget(SessionFinishedWidget);
+	}
+	TrialResponseWidgetComponent->SetVisibility(false);
+
 	UIModeOff();
+	if (bTestingOnlySpeedMultiplier)
+	{
+		TimesIndexTested.SetNum(SpeedMultiplierTestPool.Num());
+	}
+	else
+	{
+		TimesIndexTested.SetNum(DirectionChangeFrequencyTestPool.Num());
+	}
 }
 
 // Called every frame
@@ -175,10 +197,43 @@ void ASickeningPawn::DecreaseFOV()
 
 void ASickeningPawn::OnPreTrial()
 {
-	int32 index_a = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
-	int32 index_b = (int32)FMath::RandRange(0, DirectionChangeFrequency.Num() - 1);
-	SickeningSpeed = SpeedMultiplierTestPool[index_a];
-	SickeningRotatorChangeSeconds = DirectionChangeFrequency[index_b];
+	bool bFinishedTesting = true;
+	for (int TimesTested : TimesIndexTested)
+	{
+		if (TimesTested < NUM_TIMES_TO_TEST)
+		{
+			bFinishedTesting = false;
+		}
+	}
+
+	if (bFinishedTesting)
+	{
+		return;
+	}
+
+	int32 index;
+	if(bTestingOnlySpeedMultiplier)
+	{
+		index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
+		while (TimesIndexTested[index] >= NUM_TIMES_TO_TEST)
+		{
+			index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
+		}
+		SickeningSpeed = SpeedMultiplierTestPool[index];
+		SickeningRotatorChangeSeconds = 5.f;
+		TimesIndexTested[index]++;
+	}
+	else
+	{
+		index = (int32)FMath::RandRange(0, DirectionChangeFrequencyTestPool.Num() - 1);
+		while (TimesIndexTested[index] >= NUM_TIMES_TO_TEST)
+		{
+			index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
+		}
+		SickeningRotatorChangeSeconds = DirectionChangeFrequencyTestPool[index];
+		SickeningSpeed = 4.f;
+		TimesIndexTested[index]++;
+	}
 	ResetCamera();
 	SickeningTimer = 0.f;
 	TrialTimer = 0.f;
@@ -242,3 +297,23 @@ void ASickeningPawn::AcceptTrialInput()
 		TrialResponseWidgetComponent->SetVisibility(false);
 	}
 }
+
+void ASickeningPawn::SetupTrialResultsFile()
+{
+	//FString SaveDirectory = FString("TrialResults/");
+	//FString FileName = FString("trial.sav");
+	//FString TextToSave = FString("Lorem ipsum");
+	//bool AllowOverwriting = true;
+
+	//IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	//if (PlatformFile.CreateDirectoryTree(*SaveDirectory))
+	//{
+	//	FString AbsoluteFilePath = SaveDirectory + "/" + FileName;
+	//	if (AllowOverwriting || !PlatformFile::FileExists(*AbsoluteFilePath))
+	//	{
+	//		FFileHelper::SaveStringToFile(TextToSave, *AbsoluteFilePath);
+	//	}
+	//}
+}
+

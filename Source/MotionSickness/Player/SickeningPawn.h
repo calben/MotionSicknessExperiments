@@ -42,6 +42,15 @@ public:
 		TSubclassOf<class UTrialResponseWidget> TrialResponseWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		class UWidgetComponent* SessionFinishedWidgetComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		class UUserWidget* SessionFinishedWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TSubclassOf<class UUserWidget> SessionFinishedWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bIsSickening;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -78,7 +87,10 @@ public:
 		TArray<float> SpeedMultiplierTestPool = { 1 / 8.f, 1 / 4.f, 1 / 2.f, 1, 2, 4, 8, 16, 32 };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<float> DirectionChangeFrequency = { 1 / 32.f, 1 / 16.f, 1 / 8.f, 1 / 4.f, 1, 2, 4, 8, 16, 32 };
+		TArray<float> DirectionChangeFrequencyTestPool = { 1 / 32.f, 1 / 16.f, 1 / 8.f, 1 / 4.f, 1, 2, 4, 8, 16, 32 };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<int> TimesIndexTested;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bTestingOnlySpeedMultiplier = false;
@@ -91,6 +103,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bNeedsToUpdateUI;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		int NUM_TIMES_TO_TEST = 5;
 
 	void ToggleSickening();
 
@@ -129,5 +144,7 @@ public:
 	void DecrementSicknessRating();
 
 	void AcceptTrialInput();
+
+	void SetupTrialResultsFile();
 
 };
