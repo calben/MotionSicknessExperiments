@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MotionSickness.h"
+#include "UMG.h"
+#include "UI/TrialResponseWidget.h"
 #include "Components/WidgetComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "SickeningPawn.h"
@@ -8,7 +10,7 @@
 // Sets default values
 ASickeningPawn::ASickeningPawn()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MESH"));
@@ -22,8 +24,11 @@ ASickeningPawn::ASickeningPawn()
 	Window = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WINDOW"));
 	Window->SetupAttachment(Camera);
 
-	TrialResponseWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("RESPONSEWIDGET"));
-	TrialResponseWidget->SetupAttachment(Camera);
+	TrialResponseWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("RESPONSEWIDGET"));
+	TrialResponseWidgetComponent->SetupAttachment(Camera);
+	TrialResponseWidgetComponent->bAbsoluteLocation = false;
+	TrialResponseWidgetComponent->bAbsoluteRotation = false;
+	TrialResponseWidgetComponent->bAbsoluteScale = false;
 
 	SickeningSpeed = 5.f;
 }
@@ -33,12 +38,19 @@ void ASickeningPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (TrialResponseWidgetClass)
+	{
+		TrialResponseWidget = CreateWidget<UTrialResponseWidget>(GetWorld()->GetFirstPlayerController(), TrialResponseWidgetClass);
+		TrialResponseWidgetComponent->SetWidget(TrialResponseWidget);
+	}
+	TrialResponseWidgetComponent->SetVisibility(false);
+	UIModeOff();
 }
 
 // Called every frame
-void ASickeningPawn::Tick( float DeltaTime )
+void ASickeningPawn::Tick(float DeltaTime)
 {
-	Super::Tick( DeltaTime );
+	Super::Tick(DeltaTime);
 	if (bIsSickening)
 	{
 		if (SickeningTimer >= SickeningRotatorChangeSeconds)
@@ -93,6 +105,9 @@ void ASickeningPawn::SetupPlayerInputComponent(class UInputComponent* InputCompo
 	InputComponent->BindAction("IncreaseFOV", IE_Pressed, this, &ASickeningPawn::IncreaseFOV);
 	InputComponent->BindAction("DecreaseFOV", IE_Pressed, this, &ASickeningPawn::DecreaseFOV);
 	InputComponent->BindAction("ResetCamera", IE_Pressed, this, &ASickeningPawn::ResetCamera);
+	InputComponent->BindAction("IncrementSicknessRating", IE_Pressed, this, &ASickeningPawn::IncrementSicknessRating);
+	InputComponent->BindAction("DecrementSicknessRating", IE_Pressed, this, &ASickeningPawn::DecrementSicknessRating);
+	InputComponent->BindAction("AcceptTrialInput", IE_Pressed, this, &ASickeningPawn::AcceptTrialInput);
 }
 
 void ASickeningPawn::ToggleSickening()
@@ -169,7 +184,7 @@ void ASickeningPawn::OnPreTrial()
 	TrialTimer = 0.f;
 	bIsInTrial = true;
 	bIsSickening = true;
-	TrialResponseWidget->SetVisibility(false);
+	TrialResponseWidgetComponent->SetVisibility(false);
 	bNeedsToUpdateUI = true;
 }
 
@@ -178,7 +193,8 @@ void ASickeningPawn::OnPostTrial()
 	bIsSickening = false;
 	SickeningTimer = 0.f;
 	TrialTimer = 0.f;
-	TrialResponseWidget->SetVisibility(true);
+	TrialResponseWidgetComponent->SetVisibility(true);
+	UIModeOn();
 	bNeedsToUpdateUI = true;
 }
 
@@ -186,4 +202,43 @@ void ASickeningPawn::ResetCamera()
 {
 	GetController()->SetControlRotation(FRotator::ZeroRotator);
 	SetActorRotation(GetControlRotation());
+}
+
+void ASickeningPawn::UIModeOn()
+{
+	auto Controller = GetWorld()->GetFirstPlayerController();
+	Controller->bShowMouseCursor = true;
+	Controller->bEnableClickEvents = true;
+	Controller->bEnableMouseOverEvents = true;
+	Window->SetVisibility(false);
+}
+
+void ASickeningPawn::UIModeOff()
+{
+	auto Controller = GetWorld()->GetFirstPlayerController();
+	Controller->bShowMouseCursor = false;
+	Controller->bEnableClickEvents = false;
+	Controller->bEnableMouseOverEvents = false;
+	Window->SetVisibility(true);
+}
+
+void ASickeningPawn::IncrementSicknessRating()
+{
+	TrialResponseWidget->SicknessRating++;
+}
+
+void ASickeningPawn::DecrementSicknessRating()
+{
+	TrialResponseWidget->SicknessRating--;
+}
+
+void ASickeningPawn::AcceptTrialInput()
+{
+	if (TrialResponseWidgetComponent->bVisible == true)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("{ SpeedMultiplier: %f, DirectionChangeRate: %f, SicknessRating: %d}"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating);
+		TrialResponseWidget->SicknessRating = 5;
+		UIModeOff();
+		TrialResponseWidgetComponent->SetVisibility(false);
+	}
 }

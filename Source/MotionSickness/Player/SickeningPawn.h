@@ -33,7 +33,13 @@ public:
 		UStaticMeshComponent* Window;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		class UWidgetComponent* TrialResponseWidget;
+		class UWidgetComponent* TrialResponseWidgetComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		class UTrialResponseWidget* TrialResponseWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TSubclassOf<class UTrialResponseWidget> TrialResponseWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bIsSickening;
@@ -81,7 +87,7 @@ public:
 		bool bTestingOnlyDirectionChangeRate = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool bShowTrialResponseWidget;
+		bool bShowTrialResponseWidgetComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bNeedsToUpdateUI;
@@ -113,5 +119,15 @@ public:
 	void OnPreTrial();
 
 	void OnPostTrial();
+
+	void UIModeOn();
+
+	void UIModeOff();
+
+	void IncrementSicknessRating();
+
+	void DecrementSicknessRating();
+
+	void AcceptTrialInput();
 
 };
