@@ -5,6 +5,23 @@
 #include "GameFramework/Pawn.h"
 #include "SickeningPawn.generated.h"
 
+UENUM(BlueprintType)
+enum class ETrialState : uint8
+{
+	PreTrial,
+	InTrial,
+	PostTrial,
+	OutOfTrial,
+	FinishedAllTrials
+};
+
+UENUM(BlueprintType)
+enum class ETrialMode : uint8
+{
+	SpeedMultiplier,
+	DirectionChangeRate
+};
+
 UCLASS()
 class MOTIONSICKNESS_API ASickeningPawn : public APawn
 {
@@ -41,17 +58,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		TSubclassOf<class UTrialResponseWidget> TrialResponseWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		class UWidgetComponent* SessionFinishedWidgetComponent;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	//	class UWidgetComponent* SessionFinishedWidgetComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		class UUserWidget* SessionFinishedWidget;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	//	class UUserWidget* SessionFinishedWidget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TSubclassOf<class UUserWidget> SessionFinishedWidgetClass;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	//	TSubclassOf<class UUserWidget> SessionFinishedWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bIsSickening;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		ETrialState TrialState;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		ETrialMode TrialMode = ETrialMode::SpeedMultiplier;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FVector CurrentSickeningDirection;
@@ -69,13 +92,10 @@ public:
 		bool bSickenZ = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float SickeningRotatorChangeSeconds = 10.f;
+		float SickeningRotatorChangeSeconds = 2.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		float SickeningTimer = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool bIsInTrial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		float TrialTime = 5.0f;
@@ -93,19 +113,13 @@ public:
 		TArray<int> TimesIndexTested;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool bTestingOnlySpeedMultiplier = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool bTestingOnlyDirectionChangeRate = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bShowTrialResponseWidgetComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		bool bNeedsToUpdateUI;
+		int NumberTimesToTestParameter = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		int NUM_TIMES_TO_TEST = 5;
+		bool bUseWindow;
 
 	void ToggleSickening();
 
@@ -133,7 +147,11 @@ public:
 
 	void OnPreTrial();
 
+	void OnInTrial();
+
 	void OnPostTrial();
+
+	void OnFinishedAllTrials();
 
 	void UIModeOn();
 
@@ -147,4 +165,7 @@ public:
 
 	void SetupTrialResultsFile();
 
+	bool CheckFinishedTesting();
+
+	void ChooseNewSickeningDirection();
 };

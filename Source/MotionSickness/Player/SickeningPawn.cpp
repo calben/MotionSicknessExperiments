@@ -29,12 +29,18 @@ ASickeningPawn::ASickeningPawn()
 	TrialResponseWidgetComponent->bAbsoluteLocation = false;
 	TrialResponseWidgetComponent->bAbsoluteRotation = false;
 	TrialResponseWidgetComponent->bAbsoluteScale = false;
+	TrialResponseWidgetComponent->RelativeLocation = FVector(150.f, 0.f, 0.f);
+	TrialResponseWidgetComponent->RelativeRotation = FRotator(0.f, 180.f, 0.f);
+	TrialResponseWidgetComponent->RelativeScale3D = FVector(0.2f, 0.2f, 0.2f);
 
-	SessionFinishedWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("RESPONSEWIDGET"));
-	SessionFinishedWidgetComponent->SetupAttachment(Camera);
-	SessionFinishedWidgetComponent->bAbsoluteLocation = false;
-	SessionFinishedWidgetComponent->bAbsoluteRotation = false;
-	SessionFinishedWidgetComponent->bAbsoluteScale = false;
+	//SessionFinishedWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("SESSIONFINISHEDWIDGET"));
+	//SessionFinishedWidgetComponent->SetupAttachment(Camera);
+	//SessionFinishedWidgetComponent->bAbsoluteLocation = false;
+	//SessionFinishedWidgetComponent->bAbsoluteRotation = false;
+	//SessionFinishedWidgetComponent->bAbsoluteScale = false;
+	//SessionFinishedWidgetComponent->RelativeLocation = FVector(150.f, 0.f, 0.f);
+	//SessionFinishedWidgetComponent->RelativeRotation = FRotator(0.f, 180.f, 0.f);
+	//SessionFinishedWidgetComponent->RelativeScale3D = FVector(0.2f, 0.2f, 0.2f);
 
 	SickeningSpeed = 5.f;
 }
@@ -51,19 +57,19 @@ void ASickeningPawn::BeginPlay()
 	}
 	TrialResponseWidgetComponent->SetVisibility(false);
 
-	if (SessionFinishedWidgetClass)
-	{
-		SessionFinishedWidget = CreateWidget<UUserWidget>(GetWorld()->GetFirstPlayerController(), SessionFinishedWidgetClass);
-		SessionFinishedWidgetComponent->SetWidget(SessionFinishedWidget);
-	}
-	TrialResponseWidgetComponent->SetVisibility(false);
+	//if (SessionFinishedWidgetClass)
+	//{
+	//	SessionFinishedWidget = CreateWidget<UUserWidget>(GetWorld()->GetFirstPlayerController(), SessionFinishedWidgetClass);
+	//	SessionFinishedWidgetComponent->SetWidget(SessionFinishedWidget);
+	//}
+	//SessionFinishedWidgetComponent->SetVisibility(false);
 
 	UIModeOff();
-	if (bTestingOnlySpeedMultiplier)
+	if (TrialMode == ETrialMode::SpeedMultiplier)
 	{
 		TimesIndexTested.SetNum(SpeedMultiplierTestPool.Num());
 	}
-	else
+	else if (TrialMode == ETrialMode::DirectionChangeRate)
 	{
 		TimesIndexTested.SetNum(DirectionChangeFrequencyTestPool.Num());
 	}
@@ -77,30 +83,14 @@ void ASickeningPawn::Tick(float DeltaTime)
 	{
 		if (SickeningTimer >= SickeningRotatorChangeSeconds)
 		{
-			CurrentSickeningDirection = UKismetMathLibrary::RandomUnitVector();
-			if (!bSickenX)
-			{
-				CurrentSickeningDirection.X = 0;
-			}
-			if (!bSickenY)
-			{
-				CurrentSickeningDirection.Y = 0;
-			}
-			if (!bSickenZ)
-			{
-				CurrentSickeningDirection.Z = 0;
-			}
-			if (CurrentSickeningDirection.Size() > 0)
-			{
-				CurrentSickeningDirection /= CurrentSickeningDirection.Size();
-			}
+			ChooseNewSickeningDirection();
 			SickeningTimer = 0.f;
 		}
 		AddControllerPitchInput(CurrentSickeningDirection.X * SickeningSpeed * DeltaTime);
 		AddControllerYawInput(CurrentSickeningDirection.Y * SickeningSpeed * DeltaTime);
 		AddControllerRollInput(CurrentSickeningDirection.Z * SickeningSpeed * DeltaTime);
 		SetActorRotation(this->GetControlRotation());
-		if (bIsInTrial && TrialTimer >= TrialTime)
+		if (TrialState == ETrialState::InTrial && TrialTimer >= TrialTime)
 		{
 			OnPostTrial();
 		}
@@ -110,26 +100,26 @@ void ASickeningPawn::Tick(float DeltaTime)
 }
 
 // Called to bind functionality to input
-void ASickeningPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+void ASickeningPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(InputComponent);
 
-	InputComponent->BindAction("ToggleSickening", IE_Pressed, this, &ASickeningPawn::ToggleSickening);
-	InputComponent->BindAction("ToggleBlinders", IE_Pressed, this, &ASickeningPawn::ToggleWindow);
-	InputComponent->BindAction("IncreaseSickenSpeed", IE_Pressed, this, &ASickeningPawn::IncreaseSickenSpeed);
-	InputComponent->BindAction("DecreaseSickenSpeed", IE_Pressed, this, &ASickeningPawn::DecreaseSickenSpeed);
-	InputComponent->BindAction("IncreaseTimerSpeed", IE_Pressed, this, &ASickeningPawn::IncreaseTimerSpeed);
-	InputComponent->BindAction("DecreaseTimerSpeed", IE_Pressed, this, &ASickeningPawn::DecreaseTimerSpeed);
-	InputComponent->BindAction("SetupTrial", IE_Pressed, this, &ASickeningPawn::OnPreTrial);
-	InputComponent->BindAction("EnableX", IE_Pressed, this, &ASickeningPawn::EnableX);
-	InputComponent->BindAction("EnableY", IE_Pressed, this, &ASickeningPawn::EnableY);
-	InputComponent->BindAction("EnableZ", IE_Pressed, this, &ASickeningPawn::EnableZ);
-	InputComponent->BindAction("IncreaseFOV", IE_Pressed, this, &ASickeningPawn::IncreaseFOV);
-	InputComponent->BindAction("DecreaseFOV", IE_Pressed, this, &ASickeningPawn::DecreaseFOV);
-	InputComponent->BindAction("ResetCamera", IE_Pressed, this, &ASickeningPawn::ResetCamera);
-	InputComponent->BindAction("IncrementSicknessRating", IE_Pressed, this, &ASickeningPawn::IncrementSicknessRating);
-	InputComponent->BindAction("DecrementSicknessRating", IE_Pressed, this, &ASickeningPawn::DecrementSicknessRating);
-	InputComponent->BindAction("AcceptTrialInput", IE_Pressed, this, &ASickeningPawn::AcceptTrialInput);
+	PlayerInputComponent->BindAction("ToggleSickening", IE_Pressed, this, &ASickeningPawn::ToggleSickening);
+	PlayerInputComponent->BindAction("ToggleBlinders", IE_Pressed, this, &ASickeningPawn::ToggleWindow);
+	PlayerInputComponent->BindAction("IncreaseSickenSpeed", IE_Pressed, this, &ASickeningPawn::IncreaseSickenSpeed);
+	PlayerInputComponent->BindAction("DecreaseSickenSpeed", IE_Pressed, this, &ASickeningPawn::DecreaseSickenSpeed);
+	PlayerInputComponent->BindAction("IncreaseTimerSpeed", IE_Pressed, this, &ASickeningPawn::IncreaseTimerSpeed);
+	PlayerInputComponent->BindAction("DecreaseTimerSpeed", IE_Pressed, this, &ASickeningPawn::DecreaseTimerSpeed);
+	PlayerInputComponent->BindAction("SetupTrial", IE_Pressed, this, &ASickeningPawn::OnPreTrial);
+	PlayerInputComponent->BindAction("EnableX", IE_Pressed, this, &ASickeningPawn::EnableX);
+	PlayerInputComponent->BindAction("EnableY", IE_Pressed, this, &ASickeningPawn::EnableY);
+	PlayerInputComponent->BindAction("EnableZ", IE_Pressed, this, &ASickeningPawn::EnableZ);
+	PlayerInputComponent->BindAction("IncreaseFOV", IE_Pressed, this, &ASickeningPawn::IncreaseFOV);
+	PlayerInputComponent->BindAction("DecreaseFOV", IE_Pressed, this, &ASickeningPawn::DecreaseFOV);
+	PlayerInputComponent->BindAction("ResetCamera", IE_Pressed, this, &ASickeningPawn::ResetCamera);
+	PlayerInputComponent->BindAction("IncrementSicknessRating", IE_Pressed, this, &ASickeningPawn::IncrementSicknessRating);
+	PlayerInputComponent->BindAction("DecrementSicknessRating", IE_Pressed, this, &ASickeningPawn::DecrementSicknessRating);
+	PlayerInputComponent->BindAction("AcceptTrialInput", IE_Pressed, this, &ASickeningPawn::AcceptTrialInput);
 }
 
 void ASickeningPawn::ToggleSickening()
@@ -140,7 +130,8 @@ void ASickeningPawn::ToggleSickening()
 
 void ASickeningPawn::ToggleWindow()
 {
-	Window->SetVisibility(!Window->bVisible);
+	bUseWindow = !bUseWindow;
+	Window->SetVisibility(bUseWindow);
 }
 
 void ASickeningPawn::IncreaseSickenSpeed()
@@ -197,60 +188,65 @@ void ASickeningPawn::DecreaseFOV()
 
 void ASickeningPawn::OnPreTrial()
 {
-	bool bFinishedTesting = true;
-	for (int TimesTested : TimesIndexTested)
+	if (CheckFinishedTesting())
 	{
-		if (TimesTested < NUM_TIMES_TO_TEST)
-		{
-			bFinishedTesting = false;
-		}
-	}
-
-	if (bFinishedTesting)
-	{
-		return;
-	}
-
-	int32 index;
-	if(bTestingOnlySpeedMultiplier)
-	{
-		index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
-		while (TimesIndexTested[index] >= NUM_TIMES_TO_TEST)
-		{
-			index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
-		}
-		SickeningSpeed = SpeedMultiplierTestPool[index];
-		SickeningRotatorChangeSeconds = 5.f;
-		TimesIndexTested[index]++;
+		OnFinishedAllTrials();
 	}
 	else
 	{
-		index = (int32)FMath::RandRange(0, DirectionChangeFrequencyTestPool.Num() - 1);
-		while (TimesIndexTested[index] >= NUM_TIMES_TO_TEST)
+		int32 index;
+		if (TrialMode == ETrialMode::SpeedMultiplier)
 		{
 			index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
+			while (TimesIndexTested[index] >= NumberTimesToTestParameter)
+			{
+				index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
+			}
+			SickeningSpeed = SpeedMultiplierTestPool[index];
+			SickeningRotatorChangeSeconds = 2.f;
+			TimesIndexTested[index]++;
 		}
-		SickeningRotatorChangeSeconds = DirectionChangeFrequencyTestPool[index];
-		SickeningSpeed = 4.f;
-		TimesIndexTested[index]++;
+		else if (TrialMode == ETrialMode::DirectionChangeRate)
+		{
+			index = (int32)FMath::RandRange(0, DirectionChangeFrequencyTestPool.Num() - 1);
+			while (TimesIndexTested[index] >= NumberTimesToTestParameter)
+			{
+				index = (int32)FMath::RandRange(0, SpeedMultiplierTestPool.Num() - 1);
+			}
+			SickeningRotatorChangeSeconds = DirectionChangeFrequencyTestPool[index];
+			SickeningSpeed = 4.f;
+			TimesIndexTested[index]++;
+		}
 	}
+	OnInTrial();
+}
+
+void ASickeningPawn::OnInTrial()
+{
 	ResetCamera();
-	SickeningTimer = 0.f;
-	TrialTimer = 0.f;
-	bIsInTrial = true;
 	bIsSickening = true;
+	SickeningTimer = 999.f;
+	TrialTimer = 0.f;
+	UIModeOff();
+	if (bUseWindow)
+		Window->SetVisibility(true);
 	TrialResponseWidgetComponent->SetVisibility(false);
-	bNeedsToUpdateUI = true;
+	TrialState = ETrialState::InTrial;
 }
 
 void ASickeningPawn::OnPostTrial()
 {
-	bIsSickening = false;
 	SickeningTimer = 0.f;
 	TrialTimer = 0.f;
-	TrialResponseWidgetComponent->SetVisibility(true);
+	bIsSickening = false;
 	UIModeOn();
-	bNeedsToUpdateUI = true;
+	TrialResponseWidgetComponent->SetVisibility(true);
+	TrialState = ETrialState::PostTrial;
+}
+
+void ASickeningPawn::OnFinishedAllTrials()
+{
+	TrialState = ETrialState::FinishedAllTrials;
 }
 
 void ASickeningPawn::ResetCamera()
@@ -261,40 +257,46 @@ void ASickeningPawn::ResetCamera()
 
 void ASickeningPawn::UIModeOn()
 {
-	auto Controller = GetWorld()->GetFirstPlayerController();
-	Controller->bShowMouseCursor = true;
-	Controller->bEnableClickEvents = true;
-	Controller->bEnableMouseOverEvents = true;
+	auto ControllerRef = GetWorld()->GetFirstPlayerController();
+	ControllerRef->bShowMouseCursor = true;
+	ControllerRef->bEnableClickEvents = true;
+	ControllerRef->bEnableMouseOverEvents = true;
 	Window->SetVisibility(false);
 }
 
 void ASickeningPawn::UIModeOff()
 {
-	auto Controller = GetWorld()->GetFirstPlayerController();
-	Controller->bShowMouseCursor = false;
-	Controller->bEnableClickEvents = false;
-	Controller->bEnableMouseOverEvents = false;
-	Window->SetVisibility(true);
+	auto ControllerRef = GetWorld()->GetFirstPlayerController();
+	ControllerRef->bShowMouseCursor = false;
+	ControllerRef->bEnableClickEvents = false;
+	ControllerRef->bEnableMouseOverEvents = false;
+	if (bUseWindow)
+		Window->SetVisibility(true);
 }
 
 void ASickeningPawn::IncrementSicknessRating()
 {
 	TrialResponseWidget->SicknessRating++;
+	if (TrialResponseWidget->SicknessRating > 10)
+		TrialResponseWidget->SicknessRating = 10;
 }
 
 void ASickeningPawn::DecrementSicknessRating()
 {
 	TrialResponseWidget->SicknessRating--;
+	if (TrialResponseWidget->SicknessRating < 1)
+		TrialResponseWidget->SicknessRating = 1;
 }
 
 void ASickeningPawn::AcceptTrialInput()
 {
-	if (TrialResponseWidgetComponent->bVisible == true)
+	if (TrialState == ETrialState::PostTrial)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("{ SpeedMultiplier: %f, DirectionChangeRate: %f, SicknessRating: %d}"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating);
+		UE_LOG(LogTemp, Warning, TEXT("{ SpeedMultiplier: %f, DirectionChangeRate: %f, SicknessRating: %d, UseWindow: %d }"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating, bUseWindow);
 		TrialResponseWidget->SicknessRating = 5;
 		UIModeOff();
 		TrialResponseWidgetComponent->SetVisibility(false);
+		TrialState = ETrialState::OutOfTrial;
 	}
 }
 
@@ -317,3 +319,36 @@ void ASickeningPawn::SetupTrialResultsFile()
 	//}
 }
 
+bool ASickeningPawn::CheckFinishedTesting()
+{
+	bool bFinishedTesting = true;
+	for (int TimesTested : TimesIndexTested)
+	{
+		if (TimesTested < NumberTimesToTestParameter)
+		{
+			bFinishedTesting = false;
+		}
+	}
+	return bFinishedTesting;
+}
+
+void ASickeningPawn::ChooseNewSickeningDirection()
+{
+	CurrentSickeningDirection = UKismetMathLibrary::RandomUnitVector();
+	if (!bSickenX)
+	{
+		CurrentSickeningDirection.X = 0;
+	}
+	if (!bSickenY)
+	{
+		CurrentSickeningDirection.Y = 0;
+	}
+	if (!bSickenZ)
+	{
+		CurrentSickeningDirection.Z = 0;
+	}
+	if (CurrentSickeningDirection.Size() > 0)
+	{
+		CurrentSickeningDirection /= CurrentSickeningDirection.Size();
+	}
+}
