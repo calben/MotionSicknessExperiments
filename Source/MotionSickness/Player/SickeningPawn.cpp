@@ -5,7 +5,14 @@
 #include "UI/TrialResponseWidget.h"
 #include "Components/WidgetComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+
+#include <windows.h>
+#include <tchar.h>
+#include <stdio.h>
+#include <strsafe.h>
+
 #include "SickeningPawn.h"
+
 
 // Sets default values
 ASickeningPawn::ASickeningPawn()
@@ -218,6 +225,7 @@ void ASickeningPawn::OnPreTrial()
 			TimesIndexTested[index]++;
 		}
 	}
+	GeneratedVectorListCurrentIndex = 0;
 	OnInTrial();
 }
 
@@ -334,7 +342,15 @@ bool ASickeningPawn::CheckFinishedTesting()
 
 void ASickeningPawn::ChooseNewSickeningDirection()
 {
-	CurrentSickeningDirection = UKismetMathLibrary::RandomUnitVector();
+	if (bUseGeneratedVectorList)
+	{
+		CurrentSickeningDirection = GeneratedVectorList[GeneratedVectorListCurrentIndex];
+		GeneratedVectorListCurrentIndex++;
+	}
+	else
+	{
+		CurrentSickeningDirection = UKismetMathLibrary::RandomUnitVector();
+	}
 	if (!bSickenX)
 	{
 		CurrentSickeningDirection.X = 0;
