@@ -104,13 +104,16 @@ public:
 		float TrialTimer = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<float> SpeedMultiplierTestPool = { 1 / 8.f, 1 / 4.f, 1 / 2.f, 1, 2, 4, 8, 16, 32 };
+		TArray<float> SpeedMultiplierTestPool = { 1 / 4.f, 1 / 2.f, 1, 2, 4, 8, 16, 32 };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		TArray<float> DirectionChangeFrequencyTestPool = { 1 / 32.f, 1 / 16.f, 1 / 8.f, 1 / 4.f, 1, 2, 4, 8, 16, 32 };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		TArray<int> TimesIndexTested;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		TArray<float> InTrialFPSPerTick;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bShowTrialResponseWidgetComponent;
@@ -126,6 +129,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		int GeneratedVectorListCurrentIndex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString OutputFilePath;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FString Results;
 
 	void ToggleSickening();
 

@@ -56,7 +56,7 @@ ASickeningPawn::ASickeningPawn()
 void ASickeningPawn::BeginPlay()
 {
 	Super::BeginPlay();
-
+	bUseWindow = Window->bVisible;
 	if (TrialResponseWidgetClass)
 	{
 		TrialResponseWidget = CreateWidget<UTrialResponseWidget>(GetWorld()->GetFirstPlayerController(), TrialResponseWidgetClass);
@@ -80,6 +80,16 @@ void ASickeningPawn::BeginPlay()
 	{
 		TimesIndexTested.SetNum(DirectionChangeFrequencyTestPool.Num());
 	}
+
+	FString SaveDirectory = FString("TrialResults/");
+	FString FileName = FString("trial.csv");
+
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	if (PlatformFile.CreateDirectoryTree(*SaveDirectory))
+	{
+		OutputFilePath = SaveDirectory + "/" + FileName;
+	}
+	Results.Append("SpeedMultiplier,DirectionChangeRate,SicknessRating,UseWindow,UseX,UseY,UseZ,AverageFPS\n");
 }
 
 // Called every frame
@@ -101,6 +111,10 @@ void ASickeningPawn::Tick(float DeltaTime)
 		{
 			OnPostTrial();
 		}
+	}
+	if (TrialState == ETrialState::InTrial)
+	{
+		InTrialFPSPerTick.Add(1.f / DeltaTime);
 	}
 	TrialTimer += DeltaTime;
 	SickeningTimer += DeltaTime;
@@ -225,6 +239,7 @@ void ASickeningPawn::OnPreTrial()
 			TimesIndexTested[index]++;
 		}
 	}
+	InTrialFPSPerTick.Empty();
 	GeneratedVectorListCurrentIndex = 0;
 	OnInTrial();
 }
@@ -300,7 +315,14 @@ void ASickeningPawn::AcceptTrialInput()
 {
 	if (TrialState == ETrialState::PostTrial)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("{ SpeedMultiplier: %f, DirectionChangeRate: %f, SicknessRating: %d, UseWindow: %d }"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating, bUseWindow);
+		float sum = 0.f;
+		for (float f : InTrialFPSPerTick)
+			sum += f;
+		float AverageFPS = sum / InTrialFPSPerTick.Num();
+		FString Result = FString::Printf(TEXT("%f,%f,%d,%d,%d,%d,%d,%f\n"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating, 
+			bUseWindow, bSickenX, bSickenY, bSickenZ, AverageFPS);
+		Results.Append(Result);
+		FFileHelper::SaveStringToFile(Results, *OutputFilePath);
 		TrialResponseWidget->SicknessRating = 5;
 		UIModeOff();
 		TrialResponseWidgetComponent->SetVisibility(false);
@@ -310,21 +332,7 @@ void ASickeningPawn::AcceptTrialInput()
 
 void ASickeningPawn::SetupTrialResultsFile()
 {
-	//FString SaveDirectory = FString("TrialResults/");
-	//FString FileName = FString("trial.sav");
-	//FString TextToSave = FString("Lorem ipsum");
-	//bool AllowOverwriting = true;
 
-	//IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-
-	//if (PlatformFile.CreateDirectoryTree(*SaveDirectory))
-	//{
-	//	FString AbsoluteFilePath = SaveDirectory + "/" + FileName;
-	//	if (AllowOverwriting || !PlatformFile::FileExists(*AbsoluteFilePath))
-	//	{
-	//		FFileHelper::SaveStringToFile(TextToSave, *AbsoluteFilePath);
-	//	}
-	//}
 }
 
 bool ASickeningPawn::CheckFinishedTesting()
@@ -363,8 +371,13 @@ void ASickeningPawn::ChooseNewSickeningDirection()
 	{
 		CurrentSickeningDirection.Z = 0;
 	}
-	if (CurrentSickeningDirection.Size() > 0)
+
+	if (CurrentSickeningDirection.Size() > 0 && (bSickenX || bSickenY || bSickenZ))
 	{
 		CurrentSickeningDirection /= CurrentSickeningDirection.Size();
+	}
+	else
+	{
+		ChooseNewSickeningDirection();
 	}
 }
