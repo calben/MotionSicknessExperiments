@@ -98,7 +98,7 @@ public:
 		float SickeningTimer = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float TrialTime = 10.0f;
+		float TrialTime = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		float TrialTimer = 0.f;
@@ -119,7 +119,7 @@ public:
 		bool bShowTrialResponseWidgetComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		int NumberTimesToTestParameter = 5;
+		int NumberTimesToTestParameter = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		bool bUseWindow;

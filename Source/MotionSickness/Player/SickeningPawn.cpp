@@ -89,7 +89,7 @@ void ASickeningPawn::BeginPlay()
 	{
 		OutputFilePath = SaveDirectory + "/" + FileName;
 	}
-	Results.Append("SpeedMultiplier,DirectionChangeRate,SicknessRating,UseWindow,UseX,UseY,UseZ,AverageFPS\n");
+	Results.Append("SpeedMultiplier,DirectionChangeRate,SicknessRating,UseWindow,UseX,UseY,UseZ,AverageFPS,TrialLength\n");
 }
 
 // Called every frame
@@ -319,8 +319,8 @@ void ASickeningPawn::AcceptTrialInput()
 		for (float f : InTrialFPSPerTick)
 			sum += f;
 		float AverageFPS = sum / InTrialFPSPerTick.Num();
-		FString Result = FString::Printf(TEXT("%f,%f,%d,%d,%d,%d,%d,%f\n"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating, 
-			bUseWindow, bSickenX, bSickenY, bSickenZ, AverageFPS);
+		FString Result = FString::Printf(TEXT("%f,%f,%d,%d,%d,%d,%d,%f,%f\n"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating, 
+			bUseWindow, bSickenX, bSickenY, bSickenZ, AverageFPS, TrialTime);
 		Results.Append(Result);
 		FFileHelper::SaveStringToFile(Results, *OutputFilePath);
 		TrialResponseWidget->SicknessRating = 5;
