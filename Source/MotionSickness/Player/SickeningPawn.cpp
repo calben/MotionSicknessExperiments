@@ -254,6 +254,7 @@ void ASickeningPawn::OnInTrial()
 	if (bUseWindow)
 		Window->SetVisibility(true);
 	TrialResponseWidgetComponent->SetVisibility(false);
+	GetWorld()->GetTimerManager().SetTimer(CameraRotationHistoryTimerHandle, this, &ASickeningPawn::AddCameraRotatorToHistory, ROTATION_HISTORY_TIME_INTERVAL, true);
 	TrialState = ETrialState::InTrial;
 }
 
@@ -264,6 +265,7 @@ void ASickeningPawn::OnPostTrial()
 	bIsSickening = false;
 	UIModeOn();
 	TrialResponseWidgetComponent->SetVisibility(true);
+	GetWorld()->GetTimerManager().ClearTimer(CameraRotationHistoryTimerHandle);
 	TrialState = ETrialState::PostTrial;
 }
 
@@ -319,7 +321,8 @@ void ASickeningPawn::AcceptTrialInput()
 		for (float f : InTrialFPSPerTick)
 			sum += f;
 		float AverageFPS = sum / InTrialFPSPerTick.Num();
-		FString Result = FString::Printf(TEXT("%f,%f,%d,%d,%d,%d,%d,%f,%f\n"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating, 
+		CalculateCameraRotationChangeOnInterval(1.f);
+		FString Result = FString::Printf(TEXT("%f,%f,%d,%d,%d,%d,%d,%f,%f\n"), SickeningSpeed, SickeningRotatorChangeSeconds, TrialResponseWidget->SicknessRating,
 			bUseWindow, bSickenX, bSickenY, bSickenZ, AverageFPS, TrialTime);
 		Results.Append(Result);
 		FFileHelper::SaveStringToFile(Results, *OutputFilePath);
@@ -379,5 +382,62 @@ void ASickeningPawn::ChooseNewSickeningDirection()
 	else
 	{
 		ChooseNewSickeningDirection();
+	}
+}
+
+void ASickeningPawn::AddCameraRotatorToHistory()
+{
+	CameraRotationHistoryPerQuarterSecond.Add(Camera->GetComponentRotation());
+}
+
+TArray<FRotator> ASickeningPawn::CalculateAverageCameraRotationOnInterval(float SecondsInterval)
+{
+	// if ROTATION_HISTORY_TIME_INTERVAL is 0.25f and SecondsInterval is 1, then we need 4 rotations per group, for example
+	float rotations_per_group = SecondsInterval / ROTATION_HISTORY_TIME_INTERVAL;
+	int int_rotations_per_group = (int)rotations_per_group;
+	int num_groups = CameraRotationHistoryPerQuarterSecond.Num() / int_rotations_per_group;
+	if (rotations_per_group == ceilf(rotations_per_group) && num_groups == ceilf(num_groups))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SecondsInterval Bad Parity with History Interval for Average Change With Rotations Per Group %f"), rotations_per_group);
+		TArray<FRotator> badresult;
+		return badresult;
+	}
+	else
+	{
+		TArray<FRotator> Averages;
+		for (int i = 0; i < num_groups; i++)
+		{
+			FRotator avg;
+			for (int j = 0; j < int_rotations_per_group; j++)
+			{
+				avg += CameraRotationHistoryPerQuarterSecond[i + j];
+			}
+			avg *= (1.f / int_rotations_per_group);
+			Averages.Add(avg);
+		}
+		return Averages;
+	}
+}
+
+TArray<FRotator> ASickeningPawn::CalculateCameraRotationChangeOnInterval(float SecondsInterval)
+{
+	// if ROTATION_HISTORY_TIME_INTERVAL is 0.25f and SecondsInterval is 1, then we need 4 rotations per group, for example
+	float rotations_per_group = SecondsInterval / ROTATION_HISTORY_TIME_INTERVAL;
+	int int_rotations_per_group = (int)rotations_per_group;
+	int num_groups = CameraRotationHistoryPerQuarterSecond.Num() / int_rotations_per_group;
+	if (rotations_per_group == ceilf(rotations_per_group) && num_groups == ceilf(num_groups))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SecondsInterval Bad Parity with History Interval for Average Change With Rotations Per Group %f"), rotations_per_group);
+		TArray<FRotator> badresult;
+		return badresult;
+	}
+	else
+	{
+		TArray<FRotator> Differences;
+		for (int i = 0; i < num_groups; i++)
+		{
+			Differences.Add(CameraRotationHistoryPerQuarterSecond[(i * rotations_per_group) + rotations_per_group - 1] - CameraRotationHistoryPerQuarterSecond[i * rotations_per_group]);
+		}
+		return Differences;
 	}
 }

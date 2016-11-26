@@ -110,13 +110,6 @@ public:
 		TArray<float> DirectionChangeFrequencyTestPool = { 1 / 30.f, 1 / 20.f, 1 / 10.f, 1 / 5.f, 1, 5, 10, 15, 20, 25, 30 };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		TArray<FRotator> CameraRotationHistoryPerQuarterSecond;
-
-	FTimerHandle CameraRotationHistoryTimerHandle;
-
-	float ROTATION_HISTORY_TIME_INTERVAL = 0.24f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		TArray<int> TimesIndexTested;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -190,12 +183,6 @@ public:
 	bool CheckFinishedTesting();
 
 	void ChooseNewSickeningDirection();
-
-	void AddCameraRotatorToHistory();
-
-	TArray<FRotator> CalculateAverageCameraRotationOnInterval(float SecondsInterval);
-
-	TArray<FRotator> CalculateCameraRotationChangeOnInterval(float SecondsInterval);
 
 	TArray<FVector> GeneratedVectorList = {
 		FVector(-0.058, 0.878, -0.475),
